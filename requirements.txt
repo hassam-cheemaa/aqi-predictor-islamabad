@@ -1,7 +1,7 @@
 numpy>=2.0.0
 pandas>=2.2.2
 scikit-learn
-hopsworks[python]
+hopsworks
 confluent-kafka
 requests
 streamlit
@@ -10,4 +10,3 @@ python-dotenv
 joblib
 xgboost
 matplotlib
-jupyter
