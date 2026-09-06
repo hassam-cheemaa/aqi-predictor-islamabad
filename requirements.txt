@@ -1,5 +1,4 @@
 scikit-learn
-tensorflow
 hopsworks
 pandas
 numpy<2.0.0
