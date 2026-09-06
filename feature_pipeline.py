@@ -29,6 +29,7 @@ def get_historical_data(api_key, start_date, end_date):
     records = []
     for item in data["list"]:
         record = {
+            "city": CITY.lower(),
             "timestamp": pd.to_datetime(item["dt"], unit="s"),
             "aqi": item["main"]["aqi"],  # AQI from 1 to 5
             "co": item["components"]["co"],
@@ -63,52 +64,49 @@ def compute_features(df):
     df["aqi_change_rate"] = df["aqi"].diff().fillna(0)
     
     # Target: AQI in 3 days (72 hours)
-    # We create a target column by shifting the AQI backwards
     df["target_aqi_next_3_days"] = df["aqi"].shift(-72)
     
-    # Drop rows where target is NaN (the last 3 days) during training backfill
-    # But keep them for inference. We will handle this by returning the full df
     return df
 
 def run():
     print("Starting Feature Pipeline...")
     api_key = os.getenv("OPENWEATHER_API_KEY")
     if not api_key:
-        print("OPENWEATHER_API_KEY is not set. Please set it in .env or environment variables.")
-        return
+        raise ValueError("OPENWEATHER_API_KEY is not set. Please check your GitHub repository secrets.")
         
+    hopsworks_key = os.getenv("HOPSWORKS_API_KEY")
+    if not hopsworks_key:
+        raise ValueError("HOPSWORKS_API_KEY is not set. Please check your GitHub repository secrets.")
+
     # Connect to Hopsworks
-    project = hopsworks.login(api_key_value=os.getenv("HOPSWORKS_API_KEY"))
+    project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
     
-    # For backfill, let's fetch the last 90 days
+    # For backfill, fetch the last 90 days
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=90)
     
-    print(f"Fetching data from {start_date} to {end_date}...")
+    print(f"Fetching data from {start_date} to {end_date} for {CITY}...")
     df = get_historical_data(api_key, start_date, end_date)
     
     if df.empty:
-        print("No data fetched.")
-        return
+        raise RuntimeError("No data fetched from OpenWeather API. Check your API key or permissions.")
         
-    print("Computing features...")
+    print(f"Fetched {len(df)} records. Computing features...")
     df_features = compute_features(df)
     
-    # We should ensure no NaN in targets for training data, but for Hopsworks we can just upload it all
-    # and filter in the training pipeline.
-    
-    print("Connecting to Feature Group...")
+    print("Connecting to Feature Group with time_travel_format='NONE'...")
     aqi_fg = fs.get_or_create_feature_group(
         name="islamabad_aqi_features",
         version=1,
-        primary_key=["timestamp"],
+        primary_key=["city", "timestamp"],
         description="Air Quality features for Islamabad",
-        event_time="timestamp"
+        event_time="timestamp",
+        time_travel_format="NONE"
     )
     
     print("Inserting data to Hopsworks...")
-    aqi_fg.insert(df_features, write_options={"wait_for_job" : False})
+    aqi_fg.insert(df_features, write_options={"wait_for_job": True})
     print("Feature Pipeline completed successfully!")
 
 if __name__ == "__main__":
