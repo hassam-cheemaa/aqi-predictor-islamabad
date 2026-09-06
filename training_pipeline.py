@@ -27,7 +27,11 @@ def run():
     
     try:
         feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
-    except:
+    except Exception:
+        feature_view = None
+        
+    if feature_view is None:
+        print("Creating feature view islamabad_aqi_fv (v2)...")
         feature_view = fs.create_feature_view(
             name="islamabad_aqi_fv",
             version=2,

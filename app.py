@@ -20,15 +20,31 @@ def get_hopsworks_project():
     return hopsworks.login(api_key_value=api_key)
 
 def get_model_and_features(project):
-    # Fetch model
+    # Fetch latest model dynamically from registry
     mr = project.get_model_registry()
-    model_obj = mr.get_model("islamabad_aqi_model", version=2)
+    models = mr.get_models("islamabad_aqi_model")
+    if not models:
+        raise ValueError("No trained model found in Hopsworks Model Registry. Please run training_pipeline.py first.")
+    model_obj = models[-1]
     model_dir = model_obj.download()
     model = joblib.load(f"{model_dir}/aqi_model.pkl")
     
     # Fetch latest features
     fs = project.get_feature_store()
-    feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
+    try:
+        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
+    except Exception:
+        feature_view = None
+        
+    if feature_view is None:
+        aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=2)
+        feature_view = fs.create_feature_view(
+            name="islamabad_aqi_fv",
+            version=2,
+            description="Feature view for AQI prediction (v2)",
+            query=aqi_fg.select_all()
+        )
+        
     df = feature_view.get_batch_data()
     df = df.drop_duplicates(subset=["timestamp"]).sort_values("timestamp", ascending=False).reset_index(drop=True)
     return model, df
