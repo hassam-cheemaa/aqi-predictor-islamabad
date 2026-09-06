@@ -5,10 +5,8 @@ import datetime
 import hopsworks
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Coordinates for Islamabad
 LAT = 33.6844
 LON = 73.0479
 CITY = "Islamabad"
@@ -31,7 +29,7 @@ def get_historical_data(api_key, start_date, end_date):
         record = {
             "city": CITY.lower(),
             "timestamp": pd.to_datetime(item["dt"], unit="s"),
-            "aqi": item["main"]["aqi"],  # AQI from 1 to 5
+            "aqi": item["main"]["aqi"],
             "co": item["components"]["co"],
             "no": item["components"]["no"],
             "no2": item["components"]["no2"],
@@ -52,6 +50,9 @@ def compute_features(df):
         
     df = df.sort_values("timestamp").reset_index(drop=True)
     
+    # String key for Hudi record key
+    df["date_str"] = df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+    
     # Time-based features
     df["hour"] = df["timestamp"].dt.hour
     df["day"] = df["timestamp"].dt.day
@@ -71,18 +72,15 @@ def compute_features(df):
 def run():
     print("Starting Feature Pipeline...")
     api_key = os.getenv("OPENWEATHER_API_KEY")
-    if not api_key:
-        raise ValueError("OPENWEATHER_API_KEY is not set. Please check your GitHub repository secrets.")
-        
     hopsworks_key = os.getenv("HOPSWORKS_API_KEY")
-    if not hopsworks_key:
-        raise ValueError("HOPSWORKS_API_KEY is not set. Please check your GitHub repository secrets.")
 
-    # Connect to Hopsworks
+    if not api_key or not hopsworks_key:
+        raise ValueError("Missing OPENWEATHER_API_KEY or HOPSWORKS_API_KEY")
+
     project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
     
-    # For backfill, fetch the last 90 days
+    # Fetch the last 90 days
     end_date = datetime.datetime.now()
     start_date = end_date - datetime.timedelta(days=90)
     
@@ -90,19 +88,18 @@ def run():
     df = get_historical_data(api_key, start_date, end_date)
     
     if df.empty:
-        raise RuntimeError("No data fetched from OpenWeather API. Check your API key or permissions.")
+        raise RuntimeError("No data fetched from OpenWeather API.")
         
     print(f"Fetched {len(df)} records. Computing features...")
     df_features = compute_features(df)
     
-    print("Connecting to Feature Group with time_travel_format='NONE'...")
+    print("Connecting to Feature Group (version 2)...")
     aqi_fg = fs.get_or_create_feature_group(
         name="islamabad_aqi_features",
-        version=1,
-        primary_key=["city", "timestamp"],
-        description="Air Quality features for Islamabad",
-        event_time="timestamp",
-        time_travel_format="HUDI"
+        version=2,
+        primary_key=["city", "date_str"],
+        description="Air Quality features for Islamabad (v2)",
+        event_time="timestamp"
     )
     
     print("Inserting data to Hopsworks...")

@@ -16,28 +16,22 @@ def run():
     print("Starting Training Pipeline...")
     hopsworks_key = os.getenv("HOPSWORKS_API_KEY")
     if not hopsworks_key:
-        raise ValueError("HOPSWORKS_API_KEY is not set. Please check your GitHub repository secrets.")
+        raise ValueError("HOPSWORKS_API_KEY is not set.")
 
     project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
     
-    # Retrieve feature group
-    try:
-        aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=1)
-    except Exception as e:
-        print("Feature group not found. Please run feature_pipeline.py first.")
-        raise e
-        
+    # Retrieve feature group version 2
+    aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=2)
     query = aqi_fg.select_all()
     
-    # Create or get feature view
     try:
-        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=1)
+        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
     except:
         feature_view = fs.create_feature_view(
             name="islamabad_aqi_fv",
-            version=1,
-            description="Feature view for AQI prediction",
+            version=2,
+            description="Feature view for AQI prediction (v2)",
             query=query
         )
     
@@ -51,7 +45,7 @@ def run():
     print(f"Training on {len(df)} historical samples...")
     
     # Features and Target
-    X = df.drop(columns=["target_aqi_next_3_days", "timestamp", "city"], errors="ignore")
+    X = df.drop(columns=["target_aqi_next_3_days", "timestamp", "city", "date_str"], errors="ignore")
     y = df["target_aqi_next_3_days"]
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -67,13 +61,11 @@ def run():
     
     print(f"Model Evaluation Metrics -> RMSE: {rmse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     
-    # Save model locally
     model_dir = "aqi_model"
     if not os.path.isdir(model_dir):
         os.mkdir(model_dir)
     joblib.dump(model, f"{model_dir}/aqi_model.pkl")
     
-    # Register model in Hopsworks
     print("Registering model into Hopsworks Model Registry...")
     mr = project.get_model_registry()
     
