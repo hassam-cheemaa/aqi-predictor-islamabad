@@ -102,7 +102,7 @@ def run():
         primary_key=["city", "timestamp"],
         description="Air Quality features for Islamabad",
         event_time="timestamp",
-        time_travel_format="NONE"
+        time_travel_format="HUDI"
     )
     
     print("Inserting data to Hopsworks...")
