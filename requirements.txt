@@ -3,7 +3,7 @@ pandas>=2.2.2
 scikit-learn
 hopsworks
 confluent-kafka>=2.0.0
-deltalake
+hops-deltalake
 requests
 streamlit
 shap
