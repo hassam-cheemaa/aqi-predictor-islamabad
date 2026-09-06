@@ -51,6 +51,12 @@ st.markdown("""
         border-radius: 10px;
         padding: 14px;
         text-align: center;
+        height: 105px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
     }
     .pollutant-val {
         font-size: 1.6rem;
@@ -66,9 +72,29 @@ st.markdown("""
     .precaution-card {
         background: rgba(255, 255, 255, 0.04);
         border-left: 4px solid #3B82F6;
-        border-radius: 6px;
-        padding: 14px 18px;
-        margin-bottom: 10px;
+        border-radius: 8px;
+        padding: 16px;
+        height: 155px;
+        min-height: 155px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        transition: transform 0.2s ease;
+    }
+    .precaution-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+    .precaution-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #FFFFFF;
+        margin-bottom: 8px;
+    }
+    .precaution-desc {
+        font-size: 0.84rem;
+        color: #D1D5DB;
+        line-height: 1.45;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -276,8 +302,8 @@ try:
         with c:
             st.markdown(f"""
             <div class="precaution-card">
-                <b>{title}</b>
-                <div style="font-size: 0.88rem; color: #D1D5DB; margin-top: 4px;">{text}</div>
+                <div class="precaution-title">{title}</div>
+                <div class="precaution-desc">{text}</div>
             </div>
             """, unsafe_allow_html=True)
 
