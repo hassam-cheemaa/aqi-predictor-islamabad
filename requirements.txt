@@ -2,7 +2,7 @@ numpy>=2.0.0
 pandas>=2.2.2
 scikit-learn
 hopsworks
-confluent-kafka
+confluent-kafka>=2.0.0
 requests
 streamlit
 shap

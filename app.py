@@ -75,14 +75,17 @@ try:
     else:
         st.error(f"⚠️ HAZARDOUS Current AQI: {current_aqi} (Very Poor) ⚠️")
         
-    # Prepare features for prediction
-    X_pred = latest_data.drop(columns=["target_aqi_next_3_days", "timestamp", "city"], errors='ignore')
+    # Prepare features for prediction using exact feature names from training
+    if hasattr(model, "feature_names_in_"):
+        X_pred = latest_data[model.feature_names_in_]
+    else:
+        X_pred = latest_data.drop(columns=["target_aqi_next_3_days", "timestamp", "city", "date_str"], errors='ignore')
     
-    predicted_aqi = model.predict(X_pred)[0]
+    predicted_aqi = float(model.predict(X_pred)[0])
     
     st.header("Forecast: AQI in 3 Days")
     st.metric(
-        label="Predicted AQI", 
+        label="Predicted AQI (72 hours)", 
         value=f"{predicted_aqi:.2f}", 
         delta=f"{predicted_aqi - current_aqi:+.2f} from now", 
         delta_color="inverse"
@@ -92,22 +95,34 @@ try:
         st.error("⚠️ ALERT: The predicted AQI is expected to reach unhealthy/hazardous levels in 3 days. Please take precautions.")
     elif predicted_aqi <= 2:
         st.success("Air quality is projected to remain acceptable over the next 3 days.")
+    else:
+        st.warning("Moderate air quality expected over the next 3 days.")
         
     # SHAP Explanations
     st.header("Model Explanation (SHAP)")
     st.write("What features are driving this prediction?")
     
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(X_pred)
-    
-    fig, ax = plt.subplots(figsize=(10, 5))
-    shap.waterfall_plot(shap.Explanation(
-        values=shap_values[0], 
-        base_values=explainer.expected_value[0] if isinstance(explainer.expected_value, (list, tuple, np.ndarray)) else explainer.expected_value, 
-        data=X_pred.iloc[0], 
-        feature_names=X_pred.columns
-    ))
-    st.pyplot(fig)
+    try:
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer(X_pred)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        shap.plots.waterfall(shap_values[0], show=False)
+        plt.tight_layout()
+        st.pyplot(fig)
+    except Exception:
+        # Fallback for alternative shap versions
+        try:
+            explainer = shap.TreeExplainer(model)
+            sv = explainer.shap_values(X_pred)
+            fig, ax = plt.subplots(figsize=(10, 5))
+            base_val = explainer.expected_value[0] if isinstance(explainer.expected_value, (list, tuple, np.ndarray)) else explainer.expected_value
+            shap.waterfall_plot(shap.Explanation(values=sv[0], base_values=base_val, data=X_pred.iloc[0], feature_names=X_pred.columns))
+            plt.tight_layout()
+            st.pyplot(fig)
+        except Exception as e_shap:
+            st.info("Feature Importance Breakdown:")
+            importances = pd.Series(model.feature_importances_, index=X_pred.columns).sort_values(ascending=False)
+            st.bar_chart(importances.head(8))
     
     st.header("Recent Historical Pollution Trend")
     st.line_chart(df_features.head(72).set_index("timestamp")[["pm2_5", "pm10", "no2", "o3"]])
