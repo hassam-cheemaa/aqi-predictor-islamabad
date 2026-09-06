@@ -1,6 +1,6 @@
 scikit-learn
 hopsworks
-pandas
+pandas==2.1.4
 numpy<2.0.0
 requests
 streamlit
