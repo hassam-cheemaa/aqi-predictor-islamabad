@@ -182,15 +182,15 @@ def get_health_advisory(openweather_aqi, us_aqi):
         ]
     return category, badge_class, advice
 
-@st.cache_resource
-def get_hopsworks_project():
+@st.cache_resource(ttl=300)
+def load_model_and_data():
     api_key = os.getenv("HOPSWORKS_API_KEY")
     if not api_key:
         st.error("HOPSWORKS_API_KEY not found. Please add it to your Streamlit app Secrets or .env file.")
         st.stop()
-    return hopsworks.login(api_key_value=api_key)
-
-def load_model_and_data(project):
+        
+    project = hopsworks.login(api_key_value=api_key)
+    
     # Model Registry
     mr = project.get_model_registry()
     models = mr.get_models("islamabad_aqi_model")
@@ -225,8 +225,8 @@ st.title("🍃 Islamabad Air Quality Index (AQI) Radar")
 st.caption("Real-time air pollution monitoring & 72-hour Machine Learning forecasting powered by Hopsworks and GitHub Actions.")
 
 try:
-    project = get_hopsworks_project()
-    model, df_features = load_model_and_data(project)
+    with st.spinner("Connecting to Hopsworks Feature Store & loading live AQI forecast..."):
+        model, df_features = load_model_and_data()
     
     latest_row = df_features.iloc[0:1]
     timestamp = pd.to_datetime(latest_row["timestamp"].values[0])
