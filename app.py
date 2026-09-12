@@ -51,12 +51,25 @@ st.markdown("""
         border-radius: 10px;
         padding: 14px;
         text-align: center;
-        height: 105px;
+        min-height: 105px;
+        height: auto;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         box-sizing: border-box;
+    }
+    .verify-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 18px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 200px;
     }
     .pollutant-val {
         font-size: 1.6rem;
@@ -74,8 +87,8 @@ st.markdown("""
         border-left: 4px solid #3B82F6;
         border-radius: 8px;
         padding: 16px;
-        height: 155px;
         min-height: 155px;
+        height: auto;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
@@ -388,34 +401,40 @@ try:
         v1, v2, v3 = st.columns(3)
         with v1:
             st.markdown(f"""
-            <div class="pollutant-box" style="text-align: left; padding: 18px;">
-                <b style="color: #3B82F6;">Source 1: OpenWeather / Pipeline</b>
-                <div style="font-size: 1.8rem; font-weight: 800; margin: 8px 0;">{current_us_aqi} <span style="font-size: 1rem; color: #9CA3AF;">US AQI</span></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• OpenWeather Scale: <b>Level {current_ow_aqi} / 5 (Poor)</b></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• PM 2.5: <b>{current_pm25:.1f} µg/m³</b></div>
-                <div style="font-size: 0.75rem; color: #9CA3AF; margin-top: 6px;">Source: OpenWeather Air Pollution API</div>
+            <div class="verify-card">
+                <div>
+                    <div style="font-weight: 700; font-size: 1rem; color: #3B82F6; margin-bottom: 8px;">Source 1: OpenWeather / Pipeline</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; margin: 4px 0 10px 0;">{current_us_aqi} <span style="font-size: 1rem; color: #9CA3AF; font-weight: 500;">US AQI</span></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 4px;">• OpenWeather Scale: <b>Level {current_ow_aqi} / 5 (Poor)</b></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 8px;">• PM 2.5: <b>{current_pm25:.1f} µg/m³</b></div>
+                </div>
+                <div style="font-size: 0.75rem; color: #9CA3AF; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px;">Source: OpenWeather Air Pollution API</div>
             </div>
             """, unsafe_allow_html=True)
             
         with v2:
             st.markdown(f"""
-            <div class="pollutant-box" style="text-align: left; padding: 18px;">
-                <b style="color: #10B981;">Source 2: Open-Meteo Air Quality</b>
-                <div style="font-size: 1.8rem; font-weight: 800; margin: 8px 0;">{open_meteo_aqi} <span style="font-size: 1rem; color: #9CA3AF;">US AQI</span></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• Status: <b>Unhealthy for Sensitive Groups</b></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• PM 2.5: <b>{open_meteo_pm25}</b></div>
-                <div style="font-size: 0.75rem; color: #9CA3AF; margin-top: 6px;">Source: Copernicus Atmosphere Monitoring (CAMS) via Open-Meteo</div>
+            <div class="verify-card">
+                <div>
+                    <div style="font-weight: 700; font-size: 1rem; color: #10B981; margin-bottom: 8px;">Source 2: Open-Meteo Air Quality</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; margin: 4px 0 10px 0;">{open_meteo_aqi} <span style="font-size: 1rem; color: #9CA3AF; font-weight: 500;">US AQI</span></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 4px;">• Status: <b>Unhealthy for Sensitive Groups</b></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 8px;">• PM 2.5: <b>{open_meteo_pm25}</b></div>
+                </div>
+                <div style="font-size: 0.75rem; color: #9CA3AF; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px;">Source: Copernicus Atmosphere Monitoring (CAMS) via Open-Meteo</div>
             </div>
             """, unsafe_allow_html=True)
             
         with v3:
             st.markdown(f"""
-            <div class="pollutant-box" style="text-align: left; padding: 18px;">
-                <b style="color: #F59E0B;">Source 3: IQAir / AirVisual (Ground)</b>
-                <div style="font-size: 1.8rem; font-weight: 800; margin: 8px 0;">121 - 142 <span style="font-size: 1rem; color: #9CA3AF;">US AQI</span></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• Status: <b>Unhealthy for Sensitive Groups</b></div>
-                <div style="font-size: 0.9rem; color: #D1D5DB;">• Main Pollutant: <b>PM 2.5</b></div>
-                <div style="font-size: 0.75rem; color: #9CA3AF; margin-top: 6px;">Source: Ground monitoring stations in Islamabad (iqair.com)</div>
+            <div class="verify-card">
+                <div>
+                    <div style="font-weight: 700; font-size: 1rem; color: #F59E0B; margin-bottom: 8px;">Source 3: IQAir / AirVisual (Ground)</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; margin: 4px 0 10px 0;">121 - 142 <span style="font-size: 1rem; color: #9CA3AF; font-weight: 500;">US AQI</span></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 4px;">• Status: <b>Unhealthy for Sensitive Groups</b></div>
+                    <div style="font-size: 0.88rem; color: #D1D5DB; margin-bottom: 8px;">• Main Pollutant: <b>PM 2.5</b></div>
+                </div>
+                <div style="font-size: 0.75rem; color: #9CA3AF; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px;">Source: Ground monitoring stations in Islamabad (iqair.com)</div>
             </div>
             """, unsafe_allow_html=True)
             
