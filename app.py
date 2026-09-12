@@ -190,16 +190,16 @@ def load_model_and_data(project):
     # Feature Store
     fs = project.get_feature_store()
     try:
-        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
+        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=3)
     except Exception:
         feature_view = None
         
     if feature_view is None:
-        aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=2)
+        aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=3)
         feature_view = fs.create_feature_view(
             name="islamabad_aqi_fv",
-            version=2,
-            description="Feature view for AQI prediction (v2)",
+            version=3,
+            description="Feature view for AQI prediction (v3)",
             query=aqi_fg.select_all()
         )
         

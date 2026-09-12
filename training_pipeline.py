@@ -21,21 +21,21 @@ def run():
     project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
     
-    # Retrieve feature group version 2
-    aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=2)
+    # Retrieve feature group version 3
+    aqi_fg = fs.get_feature_group(name="islamabad_aqi_features", version=3)
     query = aqi_fg.select_all()
     
     try:
-        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=2)
+        feature_view = fs.get_feature_view(name="islamabad_aqi_fv", version=3)
     except Exception:
         feature_view = None
         
     if feature_view is None:
-        print("Creating feature view islamabad_aqi_fv (v2)...")
+        print("Creating feature view islamabad_aqi_fv (v3)...")
         feature_view = fs.create_feature_view(
             name="islamabad_aqi_fv",
-            version=2,
-            description="Feature view for AQI prediction (v2)",
+            version=3,
+            description="Feature view for AQI prediction (v3)",
             query=query
         )
     

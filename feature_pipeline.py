@@ -102,9 +102,9 @@ def run():
     if not api_key or not hopsworks_key:
         raise ValueError("Missing OPENWEATHER_API_KEY or HOPSWORKS_API_KEY")
 
-    # Determine fetch duration: default 7 days for hourly updates, or 90 days for full backfill
+    # Determine fetch duration: default 30 days for rich historical dataset, or 90 days for full backfill
     is_backfill = "--backfill" in sys.argv or os.getenv("BACKFILL", "false").lower() == "true"
-    days_to_fetch = 90 if is_backfill else int(os.getenv("DAYS_TO_FETCH", "7"))
+    days_to_fetch = 90 if is_backfill else int(os.getenv("DAYS_TO_FETCH", "30"))
     
     project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
@@ -121,12 +121,12 @@ def run():
     print(f"Fetched {len(df)} records. Computing features...")
     df_features = compute_features(df)
     
-    print("Connecting to Feature Group (version 2)...")
+    print("Connecting to Feature Group (version 3)...")
     aqi_fg = fs.get_or_create_feature_group(
         name="islamabad_aqi_features",
-        version=2,
+        version=3,
         primary_key=["city", "date_str"],
-        description="Air Quality features for Islamabad (v2)",
+        description="Air Quality features for Islamabad (v3)",
         event_time="timestamp"
     )
     
