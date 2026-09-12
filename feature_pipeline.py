@@ -1,4 +1,6 @@
 import os
+import sys
+import time
 import requests
 import pandas as pd
 import datetime
@@ -17,11 +19,16 @@ def get_historical_data(api_key, start_date, end_date):
     end_unix = int(end_date.timestamp())
     
     url = f"http://api.openweathermap.org/data/2.5/air_pollution/history?lat={LAT}&lon={LON}&start={start_unix}&end={end_unix}&appid={api_key}"
-    response = requests.get(url)
-    data = response.json()
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        print(f"Error making OpenWeather API request: {e}")
+        return pd.DataFrame()
     
-    if "list" not in data:
-        print("Error fetching data:", data)
+    if "list" not in data or not data["list"]:
+        print("Warning: No records found in OpenWeather response:", data)
         return pd.DataFrame()
         
     records = []
@@ -69,6 +76,24 @@ def compute_features(df):
     
     return df
 
+def insert_with_retry(aqi_fg, df_features, max_retries=3, delay_seconds=10):
+    """Inserts data into Hopsworks Feature Group with exponential retries"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Insertion attempt {attempt}/{max_retries} to Hopsworks...")
+            aqi_fg.insert(df_features, write_options={"wait_for_job": True})
+            print("Successfully inserted features into Hopsworks!")
+            return True
+        except Exception as e:
+            print(f"Insertion attempt {attempt} failed with error: {e}")
+            if attempt < max_retries:
+                print(f"Retrying in {delay_seconds} seconds...")
+                time.sleep(delay_seconds)
+                delay_seconds *= 2
+            else:
+                print("Max retries reached. Insertion failed.")
+                raise e
+
 def run():
     print("Starting Feature Pipeline...")
     api_key = os.getenv("OPENWEATHER_API_KEY")
@@ -77,14 +102,17 @@ def run():
     if not api_key or not hopsworks_key:
         raise ValueError("Missing OPENWEATHER_API_KEY or HOPSWORKS_API_KEY")
 
+    # Determine fetch duration: default 7 days for hourly updates, or 90 days for full backfill
+    is_backfill = "--backfill" in sys.argv or os.getenv("BACKFILL", "false").lower() == "true"
+    days_to_fetch = 90 if is_backfill else int(os.getenv("DAYS_TO_FETCH", "7"))
+    
     project = hopsworks.login(api_key_value=hopsworks_key)
     fs = project.get_feature_store()
     
-    # Fetch the last 90 days
     end_date = datetime.datetime.now()
-    start_date = end_date - datetime.timedelta(days=90)
+    start_date = end_date - datetime.timedelta(days=days_to_fetch)
     
-    print(f"Fetching data from {start_date} to {end_date} for {CITY}...")
+    print(f"Fetching data for past {days_to_fetch} days ({start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}) for {CITY}...")
     df = get_historical_data(api_key, start_date, end_date)
     
     if df.empty:
@@ -102,8 +130,7 @@ def run():
         event_time="timestamp"
     )
     
-    print("Inserting data to Hopsworks...")
-    aqi_fg.insert(df_features, write_options={"wait_for_job": True})
+    insert_with_retry(aqi_fg, df_features)
     print("Feature Pipeline completed successfully!")
 
 if __name__ == "__main__":
